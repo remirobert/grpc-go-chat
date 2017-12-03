@@ -1,12 +1,13 @@
 package main
 
 import (
-	pb "test-chat/chat"
+	pb "grpc-go-chat/chat"
 	"net"
 	"fmt"
 	"log"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc"
+	"errors"
 )
 
 type server struct {
@@ -14,12 +15,36 @@ type server struct {
 }
 
 func (s *server) Stream(stream pb.ChatService_StreamServer) error {
+	request, err := stream.Recv()
+	if err != nil {
+		return err
+	}
+
+	if request.Type != pb.ChatMessage_USER_JOIN {
+		return errors.New("Join First")
+	}
+
+	if err := s.processAddUser(request, stream); err != nil {
+		return err
+	}
+
 	for {
 		message, err := stream.Recv()
 		if err != nil {
+			s.processLeaveUser(message)
 			return err
 		}
 
+		switch message.Type {
+		case pb.ChatMessage_USER_JOIN:
+			return errors.New("Already joined")
+		case pb.ChatMessage_USER_LEAVE:
+			s.processLeaveUser(message)
+		case pb.ChatMessage_USER_CHAT:
+			s.processChatUser(message)
+		}
+
+		/*
 		if message.Register {
 			if message.User != nil {
 				log.Print("register new user : " + message.User.Username)
@@ -31,7 +56,25 @@ func (s *server) Stream(stream pb.ChatService_StreamServer) error {
 		} else {
 			s.sendErrorRegistrationUser(stream)
 		}
+		*/
 	}
+}
+
+func (s *server) processAddUser(message *pb.ChatMessage, stream pb.ChatService_StreamServer) error {
+	if _, ok := s.users[message.User.Username]; ok {
+		return errors.New("User already exists")
+	}
+	s.users[message.User.Username] = stream
+	s.broadcastUserJoin(message.User)
+	return nil
+}
+
+func (s *server) processLeaveUser(message *pb.ChatMessage) {
+
+}
+
+func (s *server) processChatUser(message *pb.ChatMessage) {
+
 }
 
 func (s *server) broadcastMessage(message *pb.ChatMessage) {
@@ -46,9 +89,13 @@ func (s *server) broadcastMessage(message *pb.ChatMessage) {
 	}
 }
 
-func (s *server) sendErrorRegistrationUser(stream pb.ChatService_StreamServer) {
-	messageContent := pb.Message{Type: pb.Message_ERROR, Content: "Error authentification"}
-	message := pb.ChatMessage{Message: &messageContent}
+func (s* server) broadcastUserJoin(user *pb.User) {
+	message := pb.ChatMessage{Type:pb.ChatMessage_USER_JOIN, User:user}
+	s.broadcastMessage(&message)
+}
+
+func (s *server) sendErrorRegistrationUser(stream pb.ChatService_StreamServer, user *pb.User) {
+	message := pb.ChatMessage{Type:pb.ChatMessage_USER_JOIN, User:user}
 	stream.Send(&message)
 }
 
