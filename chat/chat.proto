@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package chat;
+
+service ChatService {
+    rpc Stream(stream ChatMessage) returns (stream ChatMessage) {}
+}
+
+message ChatMessage {
+    bool register = 1;
+    User user = 2;
+    Message message = 3;
+}
+
+message User {
+    string username = 1;
+}
+
+message Message {
+    enum Type {
+        MESSAGE = 0;
+        ERROR = 1;
+    }
+    Type type = 1;
+    string content = 2;
+}
