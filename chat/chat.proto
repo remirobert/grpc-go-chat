@@ -12,13 +12,14 @@ message ChatMessage {
         USER_JOIN = 1;
         USER_LEAVE = 2;
     }
-    RequestType  type = 1;
+    RequestType type = 1;
     User user = 2;
     Message message = 3;
 }
 
 message User {
-    string username = 1;
+    string id = 1;
+    string username = 2;
 }
 
 message Message {
