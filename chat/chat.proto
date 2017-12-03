@@ -7,7 +7,12 @@ service ChatService {
 }
 
 message ChatMessage {
-    bool register = 1;
+    enum RequestType {
+        USER_CHAT = 0;
+        USER_JOIN = 1;
+        USER_LEAVE = 2;
+    }
+    RequestType  type = 1;
     User user = 2;
     Message message = 3;
 }
@@ -17,10 +22,5 @@ message User {
 }
 
 message Message {
-    enum Type {
-        MESSAGE = 0;
-        ERROR = 1;
-    }
-    Type type = 1;
     string content = 2;
 }
