@@ -1,7 +1,7 @@
 package main
 
 import (
-	pb "test-chat/chat"
+	pb "grpc-go-chat/chat"
 	"log"
 	"google.golang.org/grpc"
 	"context"
@@ -9,12 +9,15 @@ import (
 	"os"
 )
 
-var user = pb.User{Username: "remi"}
+var user = pb.User{Username:"remi", }
 
 func handleMessageReceived(message pb.ChatMessage) {
-	if message.Register == true {
+	switch message.Type {
+	case pb.ChatMessage_USER_JOIN:
 		log.Print("New user join : " + message.User.Username)
-	} else {
+	case pb.ChatMessage_USER_LEAVE:
+		log.Print("User left the chat : " + message.User.Username)
+	case pb.ChatMessage_USER_CHAT:
 		log.Print("new message : " + message.Message.Content)
 	}
 }
@@ -31,20 +34,10 @@ func readMessage(stream pb.ChatService_StreamClient) error {
 	}
 }
 
-func sendLoopMessage(stream pb.ChatService_StreamClient) {
-	index := 0
-	for {
-		messageContent := pb.Message{Content:"message" + strconv.Itoa(index)}
-		message := pb.ChatMessage{User: &user, Register: false, Message: &messageContent}
-		stream.Send(&message)
-
-	}
-}
-
 func sendMessage(serviceClient pb.ChatServiceClient) {
 	stream, err := serviceClient.Stream(context.Background())
 
-	registerMessage := pb.ChatMessage{User: &user, Register: true}
+	registerMessage := pb.ChatMessage{User:&user, Type:pb.ChatMessage_USER_JOIN}
 	stream.Send(&registerMessage)
 
 	go func() {
@@ -59,7 +52,7 @@ func sendMessage(serviceClient pb.ChatServiceClient) {
 	index := 0
 	for {
 		messageContent := pb.Message{Content:"message" + strconv.Itoa(index)}
-		message := pb.ChatMessage{User:&user, Message:&messageContent}
+		message := pb.ChatMessage{User:&user, Type: pb.ChatMessage_USER_CHAT, Message:&messageContent}
 		stream.Send(&message)
 		index = index + 1
 		if index == 100 {
