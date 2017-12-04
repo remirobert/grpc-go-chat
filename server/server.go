@@ -47,6 +47,9 @@ func (s *server) Stream(stream pb.ChatService_StreamServer) error {
 }
 
 func (s *server) processAddUser(message *pb.ChatMessage, stream pb.ChatService_StreamServer) error {
+	if message.User == nil {
+		return errors.New("no user found in the request")
+	}
 	if _, ok := s.users[message.User.Username]; ok {
 		return errors.New("user already exists")
 	}
@@ -56,6 +59,9 @@ func (s *server) processAddUser(message *pb.ChatMessage, stream pb.ChatService_S
 }
 
 func (s *server) processLeaveUser(message *pb.ChatMessage) {
+	if message.User == nil {
+		return
+	}
 	delete(s.users, message.User.Username)
 	s.broadcastUserLeave(message.User)
 }
