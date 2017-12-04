@@ -21,7 +21,7 @@ func (s *server) Stream(stream pb.ChatService_StreamServer) error {
 	}
 
 	if request.Type != pb.ChatMessage_USER_JOIN {
-		return errors.New("Join First")
+		return errors.New("join first")
 	}
 
 	if err := s.processAddUser(request, stream); err != nil {
@@ -37,32 +37,18 @@ func (s *server) Stream(stream pb.ChatService_StreamServer) error {
 
 		switch message.Type {
 		case pb.ChatMessage_USER_JOIN:
-			return errors.New("Already joined")
+			return errors.New("already joined")
 		case pb.ChatMessage_USER_LEAVE:
 			s.processLeaveUser(message)
 		case pb.ChatMessage_USER_CHAT:
 			s.processChatUser(message)
 		}
-
-		/*
-		if message.Register {
-			if message.User != nil {
-				log.Print("register new user : " + message.User.Username)
-				s.addUser(message.User, stream)
-			}
-		}
-		if s.checkRegistrationUser(message.User) {
-			s.broadcastMessage(message)
-		} else {
-			s.sendErrorRegistrationUser(stream)
-		}
-		*/
 	}
 }
 
 func (s *server) processAddUser(message *pb.ChatMessage, stream pb.ChatService_StreamServer) error {
 	if _, ok := s.users[message.User.Username]; ok {
-		return errors.New("User already exists")
+		return errors.New("user already exists")
 	}
 	s.users[message.User.Username] = stream
 	s.broadcastUserJoin(message.User)
@@ -70,20 +56,15 @@ func (s *server) processAddUser(message *pb.ChatMessage, stream pb.ChatService_S
 }
 
 func (s *server) processLeaveUser(message *pb.ChatMessage) {
-
+	delete(s.users, message.User.Username)
+	s.broadcastUserLeave(message.User)
 }
 
 func (s *server) processChatUser(message *pb.ChatMessage) {
-
+	s.broadcastMessage(message)
 }
 
 func (s *server) broadcastMessage(message *pb.ChatMessage) {
-	if message.Message != nil {
-		log.Print("broadcast new message : " + message.Message.Content)
-	} else {
-		log.Print("user registration : " + message.User.Username)
-	}
-
 	for _, stream := range s.users {
 		stream.Send(message)
 	}
@@ -94,26 +75,9 @@ func (s* server) broadcastUserJoin(user *pb.User) {
 	s.broadcastMessage(&message)
 }
 
-func (s *server) sendErrorRegistrationUser(stream pb.ChatService_StreamServer, user *pb.User) {
-	message := pb.ChatMessage{Type:pb.ChatMessage_USER_JOIN, User:user}
-	stream.Send(&message)
-}
-
-func (s *server) addUser(user *pb.User, stream pb.ChatService_StreamServer) {
-	s.users[user.Username] = stream
-}
-
-func (s *server) removeUser(user string) {
-	delete(s.users, user)
-}
-
-func (s *server) checkRegistrationUser(user *pb.User) bool {
-	for username := range s.users {
-		if username == user.Username {
-			return true
-		}
-	}
-	return false
+func (s* server) broadcastUserLeave(user *pb.User) {
+	message := pb.ChatMessage{Type:pb.ChatMessage_USER_LEAVE, User:user}
+	s.broadcastMessage(&message)
 }
 
 func main() {
