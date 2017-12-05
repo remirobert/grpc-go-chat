@@ -7,13 +7,20 @@ import (
 	"log"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 type server struct {
-	users map[string]pb.ChatService_StreamServer
+	users *UsersManager
 }
 
 func (s *server) Stream(stream pb.ChatService_StreamServer) error {
+	md, ok := metadata.FromIncomingContext(stream.Context())
+	if ok != true {
+		log.Print("impossible to get the md")
+	} else {
+		log.Print("md from the context : ", md)
+	}
 	request, err := stream.Recv()
 	if err != nil {
 		return err
@@ -40,7 +47,7 @@ func (s *server) Stream(stream pb.ChatService_StreamServer) error {
 		case pb.ChatMessage_USER_LEAVE:
 			s.processLeaveUser(message)
 		case pb.ChatMessage_USER_CHAT:
-			s.processChatUser(message)
+			s.broadcastChatUser(message)
 		}
 	}
 }
@@ -49,10 +56,11 @@ func (s *server) processAddUser(message *pb.ChatMessage, stream pb.ChatService_S
 	if message.User == nil {
 		return NewRequestError(RequestMessageNoUser)
 	}
-	if _, ok := s.users[message.User.Username]; ok {
+	if u := s.users.Find(message.User.Id); u != nil {
 		return NewAuthError(AuthMessageUserAlreadyJoined)
 	}
-	s.users[message.User.Username] = stream
+	newUser := NewUser(*message.User, stream)
+	s.users.Add(*newUser)
 	log.Print("new user joined the channel : ", message.User.Username)
 	s.broadcastUserJoin(message.User)
 	return nil
@@ -63,29 +71,23 @@ func (s *server) processLeaveUser(message *pb.ChatMessage) {
 	if message == nil || message.User == nil {
 		return
 	}
-	delete(s.users, message.User.Username)
+	s.users.Remove(message.User.Id)
 	log.Print("new user left the channel : ", message.User.Username)
 	s.broadcastUserLeave(message.User)
 }
 
-func (s *server) processChatUser(message *pb.ChatMessage) {
-	s.broadcastMessage(message)
-}
-
-func (s *server) broadcastMessage(message *pb.ChatMessage) {
-	for _, stream := range s.users {
-		stream.Send(message)
-	}
+func (s *server) broadcastChatUser(message *pb.ChatMessage) {
+	s.users.BroadcastMessage(message)
 }
 
 func (s* server) broadcastUserJoin(user *pb.User) {
 	message := pb.ChatMessage{Type:pb.ChatMessage_USER_JOIN, User:user}
-	s.broadcastMessage(&message)
+	s.users.BroadcastMessage(&message)
 }
 
 func (s* server) broadcastUserLeave(user *pb.User) {
 	message := pb.ChatMessage{Type:pb.ChatMessage_USER_LEAVE, User:user}
-	s.broadcastMessage(&message)
+	s.users.BroadcastMessage(&message)
 }
 
 func main() {
@@ -96,7 +98,7 @@ func main() {
 	}
 	s := grpc.NewServer()
 
-	server := &server{users: make(map[string]pb.ChatService_StreamServer)}
+	server := &server{users: NewUsersManager()}
 
 	pb.RegisterChatServiceServer(s, server)
 	reflection.Register(s)
