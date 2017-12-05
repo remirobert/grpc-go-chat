@@ -7,7 +7,6 @@ import (
 	"log"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc"
-	"errors"
 )
 
 type server struct {
@@ -21,7 +20,7 @@ func (s *server) Stream(stream pb.ChatService_StreamServer) error {
 	}
 
 	if request.Type != pb.ChatMessage_USER_JOIN {
-		return errors.New("join first")
+		return NewAuthError(AuthMessageUserNotJoined)
 	}
 
 	if err := s.processAddUser(request, stream); err != nil {
@@ -37,7 +36,7 @@ func (s *server) Stream(stream pb.ChatService_StreamServer) error {
 
 		switch message.Type {
 		case pb.ChatMessage_USER_JOIN:
-			return errors.New("already joined")
+			return NewAuthError(AuthMessageUserAlreadyJoined)
 		case pb.ChatMessage_USER_LEAVE:
 			s.processLeaveUser(message)
 		case pb.ChatMessage_USER_CHAT:
@@ -48,10 +47,10 @@ func (s *server) Stream(stream pb.ChatService_StreamServer) error {
 
 func (s *server) processAddUser(message *pb.ChatMessage, stream pb.ChatService_StreamServer) error {
 	if message.User == nil {
-		return errors.New("no user found in the request")
+		return NewRequestError(RequestMessageNoUser)
 	}
 	if _, ok := s.users[message.User.Username]; ok {
-		return errors.New("user already exists")
+		return NewAuthError(AuthMessageUserAlreadyJoined)
 	}
 	s.users[message.User.Username] = stream
 	log.Print("new user joined the channel : ", message.User.Username)
