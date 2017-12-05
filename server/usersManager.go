@@ -43,7 +43,7 @@ func (u *UsersManager) BroadcastMessage(message *pb.ChatMessage) {
 	for _, user := range u.users {
 		user.stream.Send(message)
 	}
-	u.mutex.Lock()
+	u.mutex.Unlock()
 }
 
 func NewUsersManager() *UsersManager {
