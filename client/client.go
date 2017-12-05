@@ -6,10 +6,9 @@ import (
 	"google.golang.org/grpc"
 	"context"
 	"strconv"
-	"os"
 )
 
-var user = pb.User{Username:"remi", }
+var user = pb.User{Username:"remi", Id:"1234"}
 
 func handleMessageReceived(message pb.ChatMessage) {
 	switch message.Type {
@@ -37,6 +36,11 @@ func readMessage(stream pb.ChatService_StreamClient) error {
 func sendMessage(serviceClient pb.ChatServiceClient) {
 	stream, err := serviceClient.Stream(context.Background())
 
+	if err != nil {
+		log.Print("get error = ", err)
+		return
+	}
+
 	registerMessage := pb.ChatMessage{User:&user, Type:pb.ChatMessage_USER_JOIN}
 	stream.Send(&registerMessage)
 
@@ -56,8 +60,9 @@ func sendMessage(serviceClient pb.ChatServiceClient) {
 		stream.Send(&message)
 		index = index + 1
 		if index == 100 {
-			stream.CloseSend()
-			os.Exit(0)
+			registerMessage := pb.ChatMessage{User:&user, Type:pb.ChatMessage_USER_LEAVE}
+			stream.Send(&registerMessage)
+			return
 		}
 	}
 }
