@@ -54,15 +54,18 @@ func (s *server) processAddUser(message *pb.ChatMessage, stream pb.ChatService_S
 		return errors.New("user already exists")
 	}
 	s.users[message.User.Username] = stream
+	log.Print("new user joined the channel : ", message.User.Username)
 	s.broadcastUserJoin(message.User)
 	return nil
 }
 
 func (s *server) processLeaveUser(message *pb.ChatMessage) {
-	if message.User == nil {
+	log.Print("remove the user : ", message)
+	if message == nil || message.User == nil {
 		return
 	}
 	delete(s.users, message.User.Username)
+	log.Print("new user left the channel : ", message.User.Username)
 	s.broadcastUserLeave(message.User)
 }
 
