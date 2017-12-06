@@ -11,7 +11,7 @@ import (
 )
 
 type server struct {
-	users *UsersManager
+	users UserProvider
 }
 
 func (s *server) Stream(stream pb.ChatService_StreamServer) error {
@@ -98,7 +98,7 @@ func main() {
 	}
 	s := grpc.NewServer()
 
-	server := &server{users: NewUsersManager()}
+	server := &server{users: NewUsers()}
 
 	pb.RegisterChatServiceServer(s, server)
 	reflection.Register(s)
