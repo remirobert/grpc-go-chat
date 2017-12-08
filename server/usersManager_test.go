@@ -31,6 +31,27 @@ func TestUsers_Add(t *testing.T) {
 	}
 }
 
+func TestUsers_Remove(t *testing.T) {
+	um := NewUsers()
+	s := new(mockStream)
+	newUser := User{stream: s}
+	um.Add(newUser)
+	um.Remove(newUser.id)
+	userFound := um.Find(newUser.id)
+	if userFound != nil {
+		t.Errorf("The user [%s - %s] should be removed.", newUser.username, newUser.id)
+	}
+}
+
+func TestUsers_Find(t *testing.T) {
+	um := NewUsers()
+	userFound := um.Find("fake")
+	if userFound != nil {
+		t.Errorf("No user should be find.")
+	}
+}
+
+
 func TestUsers_BroadcastMessage(t *testing.T) {
 	um := NewUsers()
 	s := new(mockStream)
