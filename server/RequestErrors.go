@@ -1,4 +1,4 @@
-package main
+package server
 
 const (
 	RequestMessageNoUser = "no user found in the request"

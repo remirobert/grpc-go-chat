@@ -1,4 +1,4 @@
-package main
+package server
 
 const (
 	AuthMessageUserNotJoined     = "user has to join first"

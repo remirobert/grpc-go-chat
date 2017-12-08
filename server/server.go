@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	pb "grpc-go-chat/chat"
@@ -10,11 +10,11 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-type server struct {
+type Server struct {
 	cm ClientManagerProvider
 }
 
-func (s *server) Stream(stream pb.ChatService_StreamServer) error {
+func (s *Server) Stream(stream pb.ChatService_StreamServer) error {
 	md, ok := metadata.FromIncomingContext(stream.Context())
 	if ok != true {
 		log.Print("impossible to get the md")
@@ -52,7 +52,7 @@ func (s *server) Stream(stream pb.ChatService_StreamServer) error {
 	}
 }
 
-func (s *server) processAddUser(message *pb.ChatMessage, stream pb.ChatService_StreamServer) error {
+func (s *Server) processAddUser(message *pb.ChatMessage, stream pb.ChatService_StreamServer) error {
 	if message.User == nil {
 		return NewRequestError(RequestMessageNoUser)
 	}
@@ -66,7 +66,7 @@ func (s *server) processAddUser(message *pb.ChatMessage, stream pb.ChatService_S
 	return nil
 }
 
-func (s *server) processLeaveUser(message *pb.ChatMessage) {
+func (s *Server) processLeaveUser(message *pb.ChatMessage) {
 	log.Print("remove the user : ", message)
 	if message == nil || message.User == nil {
 		return
@@ -76,34 +76,36 @@ func (s *server) processLeaveUser(message *pb.ChatMessage) {
 	s.broadcastUserLeave(message.User)
 }
 
-func (s *server) broadcastChatUser(message *pb.ChatMessage) {
+func (s *Server) broadcastChatUser(message *pb.ChatMessage) {
 	s.cm.BroadcastMessage(message)
 }
 
-func (s *server) broadcastUserJoin(user *pb.User) {
+func (s *Server) broadcastUserJoin(user *pb.User) {
 	message := pb.ChatMessage{Type: pb.ChatMessage_USER_JOIN, User: user}
 	s.cm.BroadcastMessage(&message)
 }
 
-func (s *server) broadcastUserLeave(user *pb.User) {
+func (s *Server) broadcastUserLeave(user *pb.User) {
 	message := pb.ChatMessage{Type: pb.ChatMessage_USER_LEAVE, User: user}
 	s.cm.BroadcastMessage(&message)
 }
 
-func main() {
+func (s *Server) Start() {
 	lis, err := net.Listen("tcp", ":8083")
 	if err != nil {
 		fmt.Print(err)
 		log.Fatalf("failed to listen: %v", err)
 	}
-	s := grpc.NewServer()
+	server := grpc.NewServer()
 
-	server := &server{cm: NewClientsProvider()}
-
-	pb.RegisterChatServiceServer(s, server)
-	reflection.Register(s)
-	if err := s.Serve(lis); err != nil {
+	pb.RegisterChatServiceServer(server, s)
+	reflection.Register(server)
+	if err := server.Serve(lis); err != nil {
 		fmt.Print(err)
 		log.Fatalf("failed to serve: %v", err)
 	}
+}
+
+func NewServer() *Server {
+	return &Server{cm: NewClientsProvider()}
 }
