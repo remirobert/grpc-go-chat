@@ -1,9 +1,8 @@
-package main
+package client
 
 import (
 	pb "grpc-go-chat/chat"
 	"log"
-	"google.golang.org/grpc"
 	"context"
 	"strconv"
 )
@@ -67,7 +66,7 @@ func sendMessage(serviceClient pb.ChatServiceClient) {
 	}
 }
 
-func main() {
+/*func main() {
 	conn, err := grpc.Dial("localhost:8083", grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
@@ -75,4 +74,4 @@ func main() {
 	defer conn.Close()
 	serviceClient := pb.NewChatServiceClient(conn)
 	sendMessage(serviceClient)
-}
+}*/
