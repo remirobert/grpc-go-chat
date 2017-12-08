@@ -21,31 +21,31 @@ func (s *mockStream) Recv() (*pb.ChatMessage, error) {
 }
 
 func TestUsers_Add(t *testing.T) {
-	um := NewUsers()
+	cm := NewClientsProvider()
 	s := new(mockStream)
-	newUser := User{stream: s}
-	um.Add(newUser)
-	userFound := um.Find(newUser.id)
+	c := Client{stream: s}
+	cm.Add(c)
+	userFound := cm.Find(c.user.Id)
 	if userFound == nil {
-		t.Errorf("The user [%s - %s] wasn't added.", newUser.username, newUser.id)
-	}
+		t.Errorf("The user [%s - %s] wasn't added.", c.user.Username, c.user.Id)
+	}2
 }
 
 func TestUsers_Remove(t *testing.T) {
-	um := NewUsers()
+	cm := NewClientsProvider()
 	s := new(mockStream)
-	newUser := User{stream: s}
-	um.Add(newUser)
-	um.Remove(newUser.id)
-	userFound := um.Find(newUser.id)
+	c := Client{stream: s}
+	cm.Add(c)
+	cm.Remove(c.user.Id)
+	userFound := cm.Find(c.user.Id)
 	if userFound != nil {
-		t.Errorf("The user [%s - %s] should be removed.", newUser.username, newUser.id)
+		t.Errorf("The user [%s - %s] should be removed.", c.user.Username, c.user.Id)
 	}
 }
 
 func TestUsers_Find(t *testing.T) {
-	um := NewUsers()
-	userFound := um.Find("fake")
+	cm := NewClientsProvider()
+	userFound := cm.Find("fake")
 	if userFound != nil {
 		t.Errorf("No user should be find.")
 	}
@@ -53,13 +53,13 @@ func TestUsers_Find(t *testing.T) {
 
 
 func TestUsers_BroadcastMessage(t *testing.T) {
-	um := NewUsers()
+	cm := NewClientsProvider()
 	s := new(mockStream)
-	newUser := User{stream: s}
-	um.Add(newUser)
+	c := Client{stream: s}
+	cm.Add(c)
 	m := pb.ChatMessage{User: &pb.User{Id:"123", Username:"remi"}, Type: pb.ChatMessage_USER_JOIN}
-	um.BroadcastMessage(&m)
+	cm.BroadcastMessage(&m)
 	if s.rcvMessage == nil {
-		t.Errorf("The stream didn't receive the message.", newUser.username, newUser.id)
+		t.Errorf("The stream didn't receive the message.", c.user.Username, c.user.Id)
 	}
 }

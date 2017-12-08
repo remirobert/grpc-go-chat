@@ -11,7 +11,7 @@ import (
 )
 
 type server struct {
-	users UserProvider
+	cm ClientManagerProvider
 }
 
 func (s *server) Stream(stream pb.ChatService_StreamServer) error {
@@ -56,11 +56,11 @@ func (s *server) processAddUser(message *pb.ChatMessage, stream pb.ChatService_S
 	if message.User == nil {
 		return NewRequestError(RequestMessageNoUser)
 	}
-	if u := s.users.Find(message.User.Id); u != nil {
+	if u := s.cm.Find(message.User.Id); u != nil {
 		return NewAuthError(AuthMessageUserAlreadyJoined)
 	}
-	newUser := NewUser(*message.User, stream)
-	s.users.Add(*newUser)
+	newUser := NewClient(*message.User, stream)
+	s.cm.Add(*newUser)
 	log.Print("new user joined the channel : ", message.User.Username)
 	s.broadcastUserJoin(message.User)
 	return nil
@@ -71,23 +71,23 @@ func (s *server) processLeaveUser(message *pb.ChatMessage) {
 	if message == nil || message.User == nil {
 		return
 	}
-	s.users.Remove(message.User.Id)
+	s.cm.Remove(message.User.Id)
 	log.Print("new user left the channel : ", message.User.Username)
 	s.broadcastUserLeave(message.User)
 }
 
 func (s *server) broadcastChatUser(message *pb.ChatMessage) {
-	s.users.BroadcastMessage(message)
+	s.cm.BroadcastMessage(message)
 }
 
-func (s* server) broadcastUserJoin(user *pb.User) {
-	message := pb.ChatMessage{Type:pb.ChatMessage_USER_JOIN, User:user}
-	s.users.BroadcastMessage(&message)
+func (s *server) broadcastUserJoin(user *pb.User) {
+	message := pb.ChatMessage{Type: pb.ChatMessage_USER_JOIN, User: user}
+	s.cm.BroadcastMessage(&message)
 }
 
-func (s* server) broadcastUserLeave(user *pb.User) {
-	message := pb.ChatMessage{Type:pb.ChatMessage_USER_LEAVE, User:user}
-	s.users.BroadcastMessage(&message)
+func (s *server) broadcastUserLeave(user *pb.User) {
+	message := pb.ChatMessage{Type: pb.ChatMessage_USER_LEAVE, User: user}
+	s.cm.BroadcastMessage(&message)
 }
 
 func main() {
@@ -98,7 +98,7 @@ func main() {
 	}
 	s := grpc.NewServer()
 
-	server := &server{users: NewUsers()}
+	server := &server{cm: NewClientsProvider()}
 
 	pb.RegisterChatServiceServer(s, server)
 	reflection.Register(s)
