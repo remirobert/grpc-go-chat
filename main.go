@@ -5,7 +5,7 @@ import (
 )
 
 func main() {
-	server := NewServer()
+	server := NewDefaultServer()
 	server.Start()
 }
 

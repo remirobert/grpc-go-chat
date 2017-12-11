@@ -2,6 +2,8 @@ package server
 
 const (
 	RequestMessageNoUser = "no user found in the request"
+	RequestInvalid       = "invalid request"
+	RequestUserMissing   = "user missing in the request"
 )
 
 type RequestError struct {
@@ -9,9 +11,9 @@ type RequestError struct {
 }
 
 func NewRequestError(message string) *RequestError {
-	return &RequestError{message:message}
+	return &RequestError{message: message}
 }
 
-func (e* RequestError) Error() string {
+func (e *RequestError) Error() string {
 	return e.message
 }

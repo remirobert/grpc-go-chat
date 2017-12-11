@@ -1,35 +1,20 @@
-package grpc_go_chat_test
+package grpc_go_chat
 
 import (
 	pb "grpc-go-chat/chat"
 	. "grpc-go-chat/server"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"google.golang.org/grpc"
 )
-
-type mockStream struct {
-	rcvMessage *pb.ChatMessage
-	grpc.ServerStream
-}
-
-func (s *mockStream) Send(m *pb.ChatMessage) error {
-	s.rcvMessage = m
-	return nil
-}
-
-func (s *mockStream) Recv() (*pb.ChatMessage, error) {
-	return nil, nil
-}
 
 var _ = Describe("ClientsProvider impl tests", func() {
 	Context("When adding a new Client", func() {
 		It("should be able to find the added user from the id", func() {
 			cm := NewClientsProvider()
-			s := new(mockStream)
+			s := NewMockServerStream(nil)
 
-			c1 := NewClient(pb.User{Id:"1"}, s)
-			c2 := NewClient(pb.User{Id:"2"}, s)
+			c1 := NewClient(pb.User{Id: "1"}, s)
+			c2 := NewClient(pb.User{Id: "2"}, s)
 			cm.Add(*c1)
 			cm.Add(*c2)
 
@@ -43,9 +28,9 @@ var _ = Describe("ClientsProvider impl tests", func() {
 		})
 		It("If the client doesn't exist should return nil", func() {
 			cm := NewClientsProvider()
-			s := new(mockStream)
+			s := NewMockServerStream(nil)
 
-			c1 := NewClient(pb.User{Id:"1"}, s)
+			c1 := NewClient(pb.User{Id: "1"}, s)
 			cm.Add(*c1)
 
 			clientFound := cm.Find("fake")
@@ -56,10 +41,10 @@ var _ = Describe("ClientsProvider impl tests", func() {
 	Context("When removing a Client", func() {
 		It("it should be removed in the clients manager", func() {
 			cm := NewClientsProvider()
-			s := new(mockStream)
+			s := NewMockServerStream(nil)
 
-			c1 := NewClient(pb.User{Id:"1"}, s)
-			c2 := NewClient(pb.User{Id:"2"}, s)
+			c1 := NewClient(pb.User{Id: "1"}, s)
+			c2 := NewClient(pb.User{Id: "2"}, s)
 			cm.Add(*c1)
 			cm.Add(*c2)
 
@@ -75,17 +60,28 @@ var _ = Describe("ClientsProvider impl tests", func() {
 	Context("when broadcasting a message", func() {
 		It("the clients's stream should Receive it", func() {
 			cm := NewClientsProvider()
-			ms := new(mockStream)
+			ms := NewMockServerStream(nil)
 
-			c := Client{User:pb.User{Id:"1"}, Stream:ms}
+			c := Client{User: pb.User{Id: "1"}, Stream: ms}
 			cm.Add(c)
 
-			u := &pb.User{Id:"1", Username:""}
-			m := pb.ChatMessage{User: u, Type: pb.ChatMessage_USER_JOIN}
-			cm.BroadcastMessage(&m)
+			u := &pb.User{Id: "1", Username: ""}
+			m1 := pb.ChatMessage{User: u, Type: pb.ChatMessage_USER_JOIN}
+			m2 := pb.ChatMessage{
+				User:    u,
+				Type:    pb.ChatMessage_USER_LEAVE,
+				Message: &pb.Message{Content: "hello"},
+			}
+			m3 := pb.ChatMessage{User: u, Type: pb.ChatMessage_USER_LEAVE}
 
-			Expect(ms.rcvMessage.Type).To(Equal(m.Type))
-			Expect(ms.rcvMessage.User).To(Equal(m.User))
+			cm.BroadcastMessage(&m1)
+			cm.BroadcastMessage(&m2)
+			cm.BroadcastMessage(&m3)
+
+			expectedMessages := []*pb.ChatMessage{&m1, &m2, &m3}
+
+			Expect(ms.sentMessages).ToNot(BeEmpty())
+			Expect(ms.sentMessages).To(Equal(expectedMessages))
 		})
 	})
 })
