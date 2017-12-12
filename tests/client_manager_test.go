@@ -10,7 +10,7 @@ import (
 var _ = Describe("ClientsProvider impl tests", func() {
 	Context("When adding a new Client", func() {
 		It("should be able to find the added user from the id", func() {
-			cm := NewClientsProvider()
+			cm := NewClientsManager()
 			s := NewMockServerStream(nil)
 
 			c1 := NewClient(pb.User{Id: "1"}, s)
@@ -27,7 +27,7 @@ var _ = Describe("ClientsProvider impl tests", func() {
 			Expect(clientFound2).To(Equal(c2))
 		})
 		It("If the client doesn't exist should return nil", func() {
-			cm := NewClientsProvider()
+			cm := NewClientsManager()
 			s := NewMockServerStream(nil)
 
 			c1 := NewClient(pb.User{Id: "1"}, s)
@@ -40,7 +40,7 @@ var _ = Describe("ClientsProvider impl tests", func() {
 	})
 	Context("When removing a Client", func() {
 		It("it should be removed in the clients manager", func() {
-			cm := NewClientsProvider()
+			cm := NewClientsManager()
 			s := NewMockServerStream(nil)
 
 			c1 := NewClient(pb.User{Id: "1"}, s)
@@ -59,7 +59,7 @@ var _ = Describe("ClientsProvider impl tests", func() {
 	})
 	Context("when broadcasting a message", func() {
 		It("the clients's stream should Receive it", func() {
-			cm := NewClientsProvider()
+			cm := NewClientsManager()
 			ms := NewMockServerStream(nil)
 
 			c := Client{User: pb.User{Id: "1"}, Stream: ms}

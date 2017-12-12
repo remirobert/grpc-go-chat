@@ -10,7 +10,7 @@ import (
 )
 
 type Server struct {
-	cm ClientManagerProvider
+	cm ClientManager
 }
 
 func (s *Server) Stream(stream pb.ChatService_StreamServer) error {
@@ -109,9 +109,9 @@ func (s *Server) Start() {
 }
 
 func NewDefaultServer() *Server {
-	return &Server{cm: NewClientsProvider()}
+	return &Server{cm: NewClientsManager()}
 }
 
-func NewServer(cm ClientManagerProvider) *Server {
+func NewServer(cm ClientManager) *Server {
 	return &Server{cm: cm}
 }
